@@ -5,7 +5,7 @@ Usage (from a terminal):
     python3 favorites.py list                  show everything in favorites
     python3 favorites.py                       interactive mode (type file paths)
 
-Add --dir PATH to use a favorites folder somewhere other than ~/favorites.
+Add --dir PATH (before the command) to use a folder other than ~/favorites.
 Original files are never changed or deleted; the program makes copies.
 """
 

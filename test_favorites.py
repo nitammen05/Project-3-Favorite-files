@@ -9,6 +9,31 @@ from pathlib import Path
 import favorites
 
 
+class TempDirTestCase(unittest.TestCase):
+    """Gives each test its own empty temporary folder, deleted afterwards."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.fav = self.tmp / "favorites"
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def make_file(self, name, content="hello"):
+        path = self.tmp / name
+        path.write_text(content)
+        return path
+
+
+def run(func, *args, **kwargs):
+    """Call func and return (its result, everything it printed)."""
+    out = io.StringIO()
+    with redirect_stdout(out):
+        result = func(*args, **kwargs)
+    return result, out.getvalue()
+
+
 class TestGetCategory(unittest.TestCase):
     def test_text_file(self):
         self.assertEqual(favorites.get_category("notes.txt"), "text")
@@ -30,23 +55,6 @@ class TestGetCategory(unittest.TestCase):
 
     def test_full_path(self):
         self.assertEqual(favorites.get_category("/some/folder/report.pdf"), "documents")
-
-
-class TempDirTestCase(unittest.TestCase):
-    """Gives each test its own empty temporary folder, deleted afterwards."""
-
-    def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory()
-        self.tmp = Path(self._tmp.name)
-        self.fav = self.tmp / "favorites"
-
-    def tearDown(self):
-        self._tmp.cleanup()
-
-    def make_file(self, name, content="hello"):
-        path = self.tmp / name
-        path.write_text(content)
-        return path
 
 
 class TestCreateFavoritesFolder(TempDirTestCase):
@@ -108,8 +116,7 @@ class TestAddFile(TempDirTestCase):
 class TestPathVisual(TempDirTestCase):
     def test_draws_route_to_file(self):
         result = favorites.path_visual(self.fav / "text" / "notes.txt", self.fav)
-        expected = "favorites/\n└── text/\n    └── notes.txt"
-        self.assertEqual(result, expected)
+        self.assertEqual(result, "favorites/\n└── text/\n    └── notes.txt")
 
 
 class TestTreeVisual(TempDirTestCase):
@@ -159,14 +166,6 @@ class TestAddAndReport(TempDirTestCase):
         self.assertTrue(message.startswith("Error"))
 
 
-def run(func, *args, **kwargs):
-    """Call func and return (its result, everything it printed)."""
-    out = io.StringIO()
-    with redirect_stdout(out):
-        result = func(*args, **kwargs)
-    return result, out.getvalue()
-
-
 class TestInteractive(TempDirTestCase):
     def test_add_list_quit(self):
         source = self.make_file("song.mp3")
@@ -202,7 +201,3 @@ class TestMain(TempDirTestCase):
         code, output = run(favorites.main, ["--dir", str(self.fav), "list"])
         self.assertEqual(code, 0)
         self.assertIn("a.txt", output)
-
-
-if __name__ == "__main__":
-    unittest.main()
